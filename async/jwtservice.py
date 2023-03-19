@@ -15,6 +15,7 @@ class JWTService(aiozmq.rpc.AttrHandler):
         self.secret = secret
         self.algorithm = algorithm
 
+    @aiozmq.rpc.method
     def get_token(self, username: str) -> str:
         data = {
             "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
@@ -22,6 +23,7 @@ class JWTService(aiozmq.rpc.AttrHandler):
         }
         return jwt.encode(data, self.secret, algorithm=self.algorithm)
 
+    @aiozmq.rpc.method
     def verify_token(self, token: str) -> dict:
         try:
             return jwt.decode(
