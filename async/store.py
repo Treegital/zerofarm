@@ -1,39 +1,73 @@
 import peewee
-import typing as t
-from peewee_aio import Manager
-from zero import ZeroServer
+import asyncio
+import time
+from aiozmq import rpc
+from models import manager, Account, Certificate, AccountStatus
 
 
-manager = Manager('aiosqlite:///app.db')
+class AccountService(rpc.AttrHandler):
 
-
-class User(manager.Model):
-    username = peewee.CharField(primary_key=True)
-    password  = peewee.CharField()
-
-
-class AccountService:
-
-    def __init__(self, manager: Manager):
+    def __init__(self, manager):
         self.manager = manager
 
-    async def create(self, data: dict) -> bool:
+    @rpc.method
+    async def create_account(self, data: dict) -> bool:
+        await asyncio.sleep(3)
         async with self.manager:
             async with self.manager.connection():
-                await User.create_table(True)
-                test = await User.create(**data)
+                item = await Account.create(**data)
+        return item.id
+
+    @rpc.method
+    async def request_account_token(self, id: str) -> dict:
+        async with self.manager:
+            async with self.manager.connection():
+                item = await Account.get_by_id(id)
+        return {'email': item.email}
+
+    @rpc.method
+    async def verify_account(self, email: str, token: str) -> dict:
+        async with self.manager:
+            async with self.manager.connection():
+                account = await models.Account.get(
+                    email=item['email'],
+                    status=models.AccountStatus.pending
+                )
+        if account is None:
+            return {'err': 'Invalid token'}
+
+        if not account.totp.verify(token):
+            return {'err': 'Invalid token'}
+
+        account.status = models.AccountStatus.active
+        await account.save()
         return True
 
-    async def get(self, username: str) -> dict:
-        async with manager:
-            async with manager.connection():
-                user = await User.get_by_id(username)
-        return {'username': user.username}
+    @rpc.method
+    async def verify_credentials(self, username: str, password: str) -> dict:
+        async with self.manager:
+            async with self.manager.connection():
+                item = await Account.get_by_id(id)
+        return {'email': item.email}
+
+    @rpc.method
+    async def get_account(self, id: str) -> dict:
+        async with self.manager:
+            async with self.manager.connection():
+                item = await Account.get_by_id(id)
+        return {'email': item.email}
 
 
-if __name__ == "__main__":
-    app = ZeroServer(port=6000)
+async def serve():
+    async with manager:
+        async with manager.connection():
+            await Account.create_table()
+            await Certificate.create_table()
+
     service = AccountService(manager)
-    app.register_rpc(service.create)
-    app.register_rpc(service.get)
-    app.run()
+    server = await rpc.serve_rpc(
+        service, bind='tcp://127.0.0.1:5556')
+    await server.wait_closed()
+
+
+asyncio.run(serve())
