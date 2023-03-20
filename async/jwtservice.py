@@ -1,25 +1,25 @@
 import jwt
 import asyncio
-import aiozmq.rpc
+from aiozmq import rpc
 from minicli import run, cli
 from datetime import datetime, timedelta, timezone
 
 
-class JWTService(aiozmq.rpc.AttrHandler):
+class JWTService(rpc.AttrHandler):
 
     def __init__(self, secret: str, algorithm: str = "HS256"):
         self.secret = secret
         self.algorithm = algorithm
 
-    @aiozmq.rpc.method
-    def get_token(self, username: str) -> str:
+    @rpc.method
+    def get_token(self, data: dict) -> str:
         data = {
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
-            "username": username
+            **data,
+            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1)
         }
         return jwt.encode(data, self.secret, algorithm=self.algorithm)
 
-    @aiozmq.rpc.method
+    @rpc.method
     def verify_token(self, token: str) -> dict:
         try:
             return jwt.decode(

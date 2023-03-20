@@ -6,7 +6,7 @@ from minicli import cli, run
 @cli
 async def jwt():
     client = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
-    token = await client.call.get_token("test")
+    token = await client.call.get_token({"username": "test"})
     ret = await client.call.verify_token(token)
     client.close()
 
@@ -56,6 +56,32 @@ async def email():
     assert ret == {"err": "unknown mailer"}
 
     client.close()
+
+
+@cli
+async def ws():
+    import websockets
+
+    jwt = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
+    token = await jwt.call.get_token({"email": "test@test.com"})
+
+    uri = "ws://localhost:6001"
+    async with websockets.connect(uri) as websocket:
+        await websocket.send(token)
+        async for message in websocket:
+            print(message)
+
+    client.close()
+
+
+@cli
+async def ws_send():
+    ws = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:6000')
+    ret = await ws.call.send_message("test@test.com", "this is my message")
+    print(ret)
+    ret = await ws.call.send_message("couac@test.com", "this is my message")
+    print(ret)
+    ws.close()
 
 
 if __name__ == '__main__':
