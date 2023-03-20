@@ -2,6 +2,7 @@ import peewee
 import secrets
 import base64
 import hashlib
+import pyotp
 import short_id  #short-unique-id
 from functools import cached_property
 from enum import Enum

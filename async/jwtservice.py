@@ -1,12 +1,8 @@
 import jwt
 import asyncio
 import aiozmq.rpc
+from minicli import run, cli
 from datetime import datetime, timedelta, timezone
-import sys
-
-
-if sys.version_info >= (3, 8) and sys.platform.lower().startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class JWTService(aiozmq.rpc.AttrHandler):
@@ -34,11 +30,12 @@ class JWTService(aiozmq.rpc.AttrHandler):
             return {"error": "Token expired"}
 
 
-async def serve():
+@cli
+async def serve(host: str = "127.0.0.1", port: int = 5555):
     service = JWTService('swordfish')
-    server = await aiozmq.rpc.serve_rpc(
-        service, bind='tcp://127.0.0.1:5555')
+    server = await rpc.serve_rpc(service, bind=f'tcp://{host}:{port}')
     await server.wait_closed()
 
 
-asyncio.run(serve())
+if __name__ == '__main__':
+    run()

@@ -1,31 +1,62 @@
 import aiozmq.rpc
-import sys, asyncio
+import asyncio
+from minicli import cli, run
 
 
-if sys.version_info >= (3, 8) and sys.platform.lower().startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-
-async def go():
+@cli
+async def jwt():
     client = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:5555')
     token = await client.call.get_token("test")
     ret = await client.call.verify_token(token)
-    print(ret)
     client.close()
 
-    loop = asyncio.get_event_loop()
+
+@cli
+async def account():
     client = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:5556')
-    await asyncio.gather(*[
-        client.call.create({
-            "email": f"test{idx}@test.com",
-            "password": "toto"
-        }) for idx in range(10)
-    ])
-    #userid = await client.call.create()
-    #ret = await client.call.get(userid)
-    #print(ret)
+    response = await client.call.create_account({
+        "email": "test@test.com",
+        "password": "toto"
+    })
+    token = response['otp']
+    response = await client.call.verify_account("test@test.com", 'ABC')
+    assert response == {'err': 'Invalid token'}
+
+    response = await client.call.request_account_token("test@test.com")
+    token = response['otp']
+    response = await client.call.verify_account("test@test.com", token)
+    assert response is True
+
+    response = await client.call.verify_credentials("test@test.com", "toto")
+    assert response == {'email': "test@test.com"}
+
+    response = await client.call.verify_credentials("test@test.com", "titi")
+    assert response is None
+
     client.close()
 
 
-asyncio.run(go()
-)
+@cli
+async def email():
+    client = await aiozmq.rpc.connect_rpc(connect='tcp://127.0.0.1:5557')
+    ret = await client.call.send_email(
+        'notifier',
+        ['toto@gmail.com'],
+        'this is my subject',
+        'this is my message body, in plain text'
+    )
+    assert ret is True
+
+    ret = await client.call.send_email(
+        'toto',
+        ['toto@gmail.com'],
+        'this is my subject',
+        'this is my message body, in plain text'
+    )
+    assert ret == {"err": "unknown mailer"}
+
+    client.close()
+
+
+if __name__ == '__main__':
+    run()
