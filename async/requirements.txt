@@ -1,0 +1,9 @@
+aio-pika
+aiozmq
+peewee_aio
+pyjwt
+dynaconf
+minicli
+websockets
+short-unique-id
+pyotp

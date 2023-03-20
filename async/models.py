@@ -3,13 +3,11 @@ import secrets
 import base64
 import hashlib
 import pyotp
-import short_id  #short-unique-id
+import short_id
 from functools import cached_property
 from enum import Enum
 from datetime import datetime
 from cryptography import x509
-from cryptography.hazmat.primitives import serialization
-import typing as t
 from peewee_aio import Manager
 
 

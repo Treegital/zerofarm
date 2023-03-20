@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import websockets
 import typing as t
 from aiozmq import rpc
