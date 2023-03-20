@@ -24,6 +24,11 @@ class WebsocketServer(rpc.AttrHandler):
             return True
         return {"err": "user is offline"}
 
+    @rpc.method
+    async def broadcast(self, message: str) -> bool:
+        websockets.broadcast(self.connections.values(), message)
+        return True
+
     async def __call__(self, websocket):
         jwt = await asyncio.wait_for(websocket.recv(), timeout=2)
         service = await rpc.connect_rpc(connect=self.jwt_service)
