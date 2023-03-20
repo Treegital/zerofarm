@@ -25,7 +25,7 @@ class WebsocketServer(rpc.AttrHandler):
         return {"err": "user is offline"}
 
     @rpc.method
-    async def broadcast(self, message: str) -> bool:
+    def broadcast(self, message: str) -> bool:
         websockets.broadcast(self.connections.values(), message)
         return True
 
